@@ -78,15 +78,22 @@ public class Server extends Thread
             this.clientID = clientID;
         }
 
+        /**
+         * @return the clientID of the thread
+         */
         int getClientID()
         {
             return clientID;
         }
 
+        /**
+         * the main method of the thread
+         */
         public void run()
         {
             try
             {
+                //initializing the i/o streams for the client socket
                 clientIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 clientOut = new PrintWriter(clientSocket.getOutputStream());
             } catch (IOException ioe)
@@ -100,31 +107,45 @@ public class Server extends Thread
                 {
                     ioe2.printStackTrace();
                 }
+                //stopping and removing the client
                 clients.remove(clientID);
                 stop();
             }
             System.out.println("Connected to client #" + clientID);
-            ClientListener clientListener = new ClientListener(clientIn, clientID, (String line) ->
-            {
-                System.out.println(line);
-                if (line.startsWith("checkWifi:"))
-                {
-                    String WifiSSID = line.substring(10);
-
-                }
-                if (line.startsWith("store#"))
-                {
-                    int storeID = Integer.parseInt(line.substring(6));
-                    Store store = handler.getStore(storeID);
-                    if (store != null)
-                    {
-                        clientOut.println("storedetails#" + store.getName() + ";" + store.getCity() + ";"
-                                + store.getPhoneNumber() +  ";" + store.getEmailAddr());
-                    }
-                }
-            });
+            ClientListener clientListener = new ClientListener(clientIn, clientID, this::onLineReceived);
             clientListener.start();
         }
+
+        /**
+         * this method is called every time a line from the client is received
+         * @param line the received line
+         */
+        private void onLineReceived(String line)
+        {
+            System.out.println(line);
+            if (line.startsWith("checkWifi#")) //when the client is checking if a wifi network is a network of a store
+            {
+                String WifiSSID = line.substring(10);
+                //the list of the stores whose wifi's SSID is the SSID the client sent
+                Integer[] stores = handler.getStoresFromSSID(WifiSSID);
+                for (int storeID:stores)
+                {
+                    //outputs to the client the name of every matching store
+                    clientOut.println("foundStore#" + handler.getStoreName(storeID));
+                }
+            }
+            else if (line.startsWith("store#"))
+            {
+                int storeID = Integer.parseInt(line.substring(6));
+                Store store = handler.getStore(storeID);
+                if (store != null)
+                {
+                    clientOut.println("storedetails#" + store.getName() + ";" + store.getCity() + ";"
+                            + store.getPhoneNumber() + ";" + store.getEmailAddr());
+                }
+            }
+        }
+
         class ClientListener extends Thread
         {
             private BufferedReader in;

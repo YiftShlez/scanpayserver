@@ -144,6 +144,31 @@ public class DBHandler
         return null; //if a store wasn't found, or there was an exception, a null object is returned
     }
 
+    /**
+     * This method is used to get the name of a store with a given storeID
+     * @param storeID the storeID of the store
+     * @return the name of the store, or null if didn't find store
+     */
+    public String getStoreName (int storeID)
+    {
+        //a sql query to select the store name where the storeID is the given id
+        String query = "SELECT " + storeNameColumn + " FROM " + storesTableName +
+                " WHERE " + storeIDColumn + "=" + storeID;
+        ResultSet result;
+        try
+        {
+            result = stmt.executeQuery(query);
+            result.next();
+            if (!result.isAfterLast())
+                return result.getString(storeNameColumn); //returns the store name
+        }
+        catch (SQLException sqle)
+        {
+            sqle.printStackTrace();
+        }
+        return null;
+    }
+
 }
 
 
